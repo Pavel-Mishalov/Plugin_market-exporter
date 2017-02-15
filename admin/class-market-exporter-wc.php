@@ -258,6 +258,22 @@ class ME_WC {
             }
         endforeach;
         $yml .= '    </categories>'.PHP_EOL;
+
+        $yml .= '    <outlets>'.PHP_EOL;
+	
+
+	$i = 0;
+	$args = array(
+	   'taxonomy' => 'pa_'.$this->settings['mis_outlets'],
+	   'hide_empty' => false,
+	   'fields' => 'all'
+	);
+	$attr_value = get_terms( $args );
+        foreach ( $attr_value as $outlet ):
+                $yml .= '      <outlet id="' . $i . '">' . wp_strip_all_tags( $outlet->name ) . '</outlet>'.PHP_EOL; $i++;
+        endforeach;
+        $yml .= '    </outlets>'.PHP_EOL;
+
         $yml .= '    <offers>'.PHP_EOL;
 
         return $yml;
@@ -413,6 +429,19 @@ class ME_WC {
                 $model = $this->get_attr_offer($offer, $this->settings['model']);
                     if ( $model )
                         $yml .= '        <model>' . wp_strip_all_tags( $model ) . '</model>'.PHP_EOL;
+		
+		//Outlets
+		$attr_mis_outlets = $offer->get_attributes();
+	        $mis_outlets = '';
+	        $mis_outlets .= isset($attr_mis_sales_notes['pa_'.$this->settings['mis_outlets']]) ? wp_get_post_terms( $product->id , 'pa_'.$attribute_product, array("fields" => "all")) : '';
+
+		if( $mis_outlets ):
+			$yml .= '        <outlets>'.PHP_EOL;
+			foreach( $mis_outlets as $outlet ):
+				$yml .= '           <outlet>' . wp_strip_all_tags( $outlet->name ) . '</outlet>'.PHP_EOL;
+			endforeach;
+			$yml .= '        </outlets>'.PHP_EOL;
+		endif;
 
                 // Vendor code.
                 if ( $offer->sku )
@@ -425,9 +454,9 @@ class ME_WC {
                     $yml .= '        <description> <![CDATA[' . html_entity_decode( $offer->post->post_excerpt, ENT_COMPAT, "UTF-8" ) . ']]> </description>'.PHP_EOL;
 				
                 // Sales notes.
-
-                //if ( ( $this->settings['sales_notes'] == 'yes' ) && ( $offer->post->post_excerpt ) )
-                    //$yml .= '        <sales_notes>' . wp_strip_all_tags( $offer->post->post_excerpt ) . '</sales_notes>'.PHP_EOL;
+		$sales_notes = $this->get_attr_offer($offer, $this->settings['mis_sales_notes']);
+                    if ( $sales_notes )
+                    $yml .= '        <sales_notes>' . wp_strip_all_tags( $sales_notes ) . '</sales_notes>'.PHP_EOL;
                 
                 $cpa = $this->get_attr_offer($offer, $this->settings['mis_cpa']);
                 if ( $cpa )
