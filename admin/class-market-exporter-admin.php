@@ -587,8 +587,38 @@ class Market_Exporter_Admin {
                 'label_for'         => 'mis_store_product',
                 'description'       => __( 'Выберите атрибут, который отвечает за наличие точки продажи товара.', $this->plugin_name ),
                 'type'              => 'select',
-				'options'			=> $attributes_array
-			]
+		'options'   	    => $attributes_array
+	    ]
+        );
+
+		// Sales-notes
+        add_settings_field(
+            'market_exporter_mis_sales_notes',
+            __( 'Краткое описание', $this->plugin_name ),
+            array( &$this, 'input_fields_cb' ),
+            $this->plugin_name,
+            'market_exporter_section_general',
+            [
+                'label_for'         => 'mis_sales_notes',
+                'description'       => __( 'Выберите атрибут, краткой информации о товаре.', $this->plugin_name ),
+                'type'              => 'select',
+		'options'   	    => $attributes_array
+	    ]
+        );
+
+		// Точки продажи товара
+        add_settings_field(
+            'market_exporter_mis_outlets',
+            __( 'Точки продажи товара', $this->plugin_name ),
+            array( &$this, 'input_fields_cb' ),
+            $this->plugin_name,
+            'market_exporter_section_general',
+            [
+                'label_for'         => 'mis_outlets',
+                'description'       => __( 'Выберите атрибут, выбора точек продаж.', $this->plugin_name ),
+                'type'              => 'select',
+		'options'   	    => $attributes_array
+	    ]
         );
 		
 		// Список свойств
@@ -754,6 +784,8 @@ class Market_Exporter_Admin {
 		$output['mis_pickup_product']   = sanitize_text_field( $input['mis_pickup_product'] );
 		$output['mis_store_product']    = sanitize_text_field( $input['mis_store_product'] );
 		$output['mis_cpa']              = sanitize_text_field( $input['mis_cpa'] );
+		$output['mis_outlets']              = sanitize_text_field( $input['mis_outlets'] );
+		$output['mis_sales_notes']              = sanitize_text_field( $input['mis_sales_notes'] );
 
 		$output['sales_notes']	= ( isset( $input['sales_notes'] ) ) ? true : false;
 		$output['backorders']	= ( isset( $input['backorders'] ) ) ? true : false;
