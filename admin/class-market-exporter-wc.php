@@ -84,7 +84,7 @@ class ME_WC {
      */
     private function check_currecny() {
 
-        $currency = get_woocommerce_currency();
+        $currency = 'RUB';
 
         switch ( $currency ) {
             case 'RUB':
@@ -236,13 +236,13 @@ class ME_WC {
         $yml .= '    </currencies>'.PHP_EOL;
         $yml .= '    <delivery-options>'.PHP_EOL;
         $yml .= '        <option';
-            if($this->settings['count_delivery_all']):
+            if( is_numeric ($this->settings['count_delivery_all'] ) ):
                 $yml .= ' cost="'.esc_html($this->settings['count_delivery_all']).'"';
             endif;
-            if($this->settings['days_delivery_all']):
+            if( is_numeric ($this->settings['days_delivery_all'] ) ):
                 $yml .= ' days="'.esc_html($this->settings['days_delivery_all']).'"';
             endif;
-            if($this->settings['order_before_delivery_all']){
+            if( is_numeric ( $this->settings['order_before_delivery_all'] ) ){
                 $yml .= ' order_before="'.esc_html($this->settings['order_before_delivery_all']).'"/>'.PHP_EOL;
             }else {
                 $yml .= ' />'.PHP_EOL;
@@ -250,29 +250,19 @@ class ME_WC {
         $yml .= '    </delivery-options>'.PHP_EOL;
 
         $yml .= '    <categories>'.PHP_EOL;
-        foreach ( get_categories( array( 'taxonomy' => 'product_cat', 'orderby' => 'term_id' ) ) as $category ):
-            if ( $category->parent == 0 ) {
-                $yml .= '      <category id="' . $category->cat_ID . '">' . wp_strip_all_tags( $category->name ) . '</category>'.PHP_EOL;
-            } else {
-                $yml .= '      <category id="' . $category->cat_ID . '" parentId="' . $category->parent . '">' . wp_strip_all_tags( $category->name) . '</category>'.PHP_EOL;
-            }
-        endforeach;
+        
+		foreach ( get_categories( array( 'taxonomy' => 'product_cat', 'orderby' => 'term_id' ) ) as $category ):
+			if ( $category->parent == 0 ) {
+				$yml .= '      <category id="' . $category->cat_ID . '">' . wp_strip_all_tags( $category->name ) . '</category>'.PHP_EOL;
+			}
+		endforeach;
+		foreach ( get_categories( array( 'taxonomy' => 'product_cat', 'orderby' => 'term_id' ) ) as $category ):
+			if ( $category->parent == 0 ) {
+			} else {
+				$yml .= '      <category id="' . $category->cat_ID . '" parentId="' . $category->parent . '">' . wp_strip_all_tags( $category->name) . '</category>'.PHP_EOL;
+			}
+		endforeach;
         $yml .= '    </categories>'.PHP_EOL;
-
-        $yml .= '    <outlets>'.PHP_EOL;
-	
-
-	$i = 0;
-	$args = array(
-	   'taxonomy' => 'pa_'.$this->settings['mis_outlets'],
-	   'hide_empty' => false,
-	   'fields' => 'all'
-	);
-	$attr_value = get_terms( $args );
-        foreach ( $attr_value as $outlet ):
-                $yml .= '      <outlet id="' . $i . '">' . wp_strip_all_tags( $outlet->name ) . '</outlet>'.PHP_EOL; $i++;
-        endforeach;
-        $yml .= '    </outlets>'.PHP_EOL;
 
         $yml .= '    <offers>'.PHP_EOL;
 
@@ -333,17 +323,17 @@ class ME_WC {
                 $fee = $this->get_attr_offer($offer, $this->settings['mis_fee']);
                 $yml .= '      <offer id="' . $offerID . '" type="vendor.model"';
 
-                    if($bid):
+                    if($bid && is_numeric($bid)):
                     $yml .= ' bid="'.wp_strip_all_tags( $bid ).'"';
                     endif;
-                    if($cbid):
+                    if($cbid && is_numeric($cbid)):
                         $yml .= ' cbid="'.wp_strip_all_tags( $cbid ).'"';
                     endif;
-                    if($fee):
+                    if($fee && is_numeric($fee) ):
                         $yml .= ' fee="'.wp_strip_all_tags( $fee ).'"';
                     endif;
-                    $yml .= ' available="'.( $offer->stock != "outofstock" ? "true" : "false" ).'">'.PHP_EOL;
-                
+                    $yml .= ' available="'.( $offer->stock != "outofstock" ? "true" : "true" ).'">'.PHP_EOL;
+
                 // Link.
                 $yml .= '        <url>' . get_permalink( $offer->id ) . $var_link . '</url>'.PHP_EOL;
                 // Price.
@@ -392,13 +382,13 @@ class ME_WC {
                 if ($cost || $days || $order_before):
                 $yml .= '        <delivery-options>'.PHP_EOL;
                 $yml .= '            <option';
-                    if($cost):
+                    if(is_numeric ($cost)):
                         $yml .= ' cost="'.wp_strip_all_tags( $cost ).'"';
                     endif;
-                    if($days):
+                    if(is_numeric ($days)):
                         $yml .= ' days="'.wp_strip_all_tags( $days ).'"';
                     endif;
-                    if($order_before){
+                    if(is_numeric ($order_before)){
                         $yml .= ' order_before="'.wp_strip_all_tags( $order_before ).'"/>'.PHP_EOL;
                     }else {
                         $yml .= ' />'.PHP_EOL;
@@ -431,17 +421,9 @@ class ME_WC {
                         $yml .= '        <model>' . wp_strip_all_tags( $model ) . '</model>'.PHP_EOL;
 		
 		//Outlets
-		$attr_mis_outlets = $offer->get_attributes();
-	        $mis_outlets = '';
-	        $mis_outlets .= isset($attr_mis_sales_notes['pa_'.$this->settings['mis_outlets']]) ? wp_get_post_terms( $product->id , 'pa_'.$attribute_product, array("fields" => "all")) : '';
-
-		if( $mis_outlets ):
-			$yml .= '        <outlets>'.PHP_EOL;
-			foreach( $mis_outlets as $outlet ):
-				$yml .= '           <outlet>' . wp_strip_all_tags( $outlet->name ) . '</outlet>'.PHP_EOL;
-			endforeach;
-			$yml .= '        </outlets>'.PHP_EOL;
-		endif;
+		$yml .= '        <outlets>'.PHP_EOL;
+		$yml .= '           <outlet id="" instock="1" />'.PHP_EOL;
+		$yml .= '        </outlets>'.PHP_EOL;
 
                 // Vendor code.
                 if ( $offer->sku )
@@ -459,7 +441,7 @@ class ME_WC {
                     $yml .= '        <sales_notes>' . wp_strip_all_tags( $sales_notes ) . '</sales_notes>'.PHP_EOL;
                 
                 $cpa = $this->get_attr_offer($offer, $this->settings['mis_cpa']);
-                if ( $cpa )
+                if ( is_numeric ( $cpa ) )
                     $yml .= '        <cpa>'. wp_strip_all_tags( $cpa ) .'</cpa>'.PHP_EOL;
                 
                 global $woocommerce_loop;
