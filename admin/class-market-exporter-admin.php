@@ -477,7 +477,7 @@ class Market_Exporter_Admin {
 		);
 
 		// Add sales_notes field option.
-		add_settings_field(
+		/* add_settings_field(
 			'market_exporter_sales_notes',
 			__( 'Enable sales_notes', $this->plugin_name ),
 			array( &$this, 'input_fields_cb' ),
@@ -488,9 +488,9 @@ class Market_Exporter_Admin {
 				'description'       => __( 'If enabled will use product field "short description" as value for property "sales_notes". Not longer than 50 characters.', $this->plugin_name ),
 				'type'              => 'checkbox'
 			]
-		);
+		); */
 
-		// Add backorders field option.
+/*		// Add backorders field option.
 		add_settings_field(
 			'market_exporter_backorders',
 			__( 'Export products with backorders', $this->plugin_name ),
@@ -503,7 +503,7 @@ class Market_Exporter_Admin {
 				'type'              => 'checkbox'
 			]
 		);
-
+*/
 		// Возможность доставки товара
 		add_settings_field(
 			'market_exporter_mis_delivery_option',
@@ -601,21 +601,6 @@ class Market_Exporter_Admin {
             [
                 'label_for'         => 'mis_sales_notes',
                 'description'       => __( 'Выберите атрибут, краткой информации о товаре.', $this->plugin_name ),
-                'type'              => 'select',
-		'options'   	    => $attributes_array
-	    ]
-        );
-
-		// Точки продажи товара
-        add_settings_field(
-            'market_exporter_mis_outlets',
-            __( 'Точки продажи товара', $this->plugin_name ),
-            array( &$this, 'input_fields_cb' ),
-            $this->plugin_name,
-            'market_exporter_section_general',
-            [
-                'label_for'         => 'mis_outlets',
-                'description'       => __( 'Выберите атрибут, выбора точек продаж.', $this->plugin_name ),
                 'type'              => 'select',
 		'options'   	    => $attributes_array
 	    ]
@@ -784,10 +769,9 @@ class Market_Exporter_Admin {
 		$output['mis_pickup_product']   = sanitize_text_field( $input['mis_pickup_product'] );
 		$output['mis_store_product']    = sanitize_text_field( $input['mis_store_product'] );
 		$output['mis_cpa']              = sanitize_text_field( $input['mis_cpa'] );
-		$output['mis_outlets']              = sanitize_text_field( $input['mis_outlets'] );
-		$output['mis_sales_notes']              = sanitize_text_field( $input['mis_sales_notes'] );
+		$output['mis_sales_notes']      = sanitize_text_field( $input['mis_sales_notes'] );
 
-		$output['sales_notes']	= ( isset( $input['sales_notes'] ) ) ? true : false;
+		//$output['sales_notes']	= ( isset( $input['sales_notes'] ) ) ? true : false;
 		$output['backorders']	= ( isset( $input['backorders'] ) ) ? true : false;
 		$output['file_date']	= ( isset( $input['file_date'] ) ) ? true : false;
 		$output['mis_delivery_option']	= ( isset( $input['mis_delivery_option'] ) ) ? true : false;
