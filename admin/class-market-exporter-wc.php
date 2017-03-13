@@ -17,6 +17,7 @@ class ME_WC {
     public function __construct() {
         // Get plugin settings.
         $this->settings = get_option( 'market_exporter_shop_settings' );
+        $this->settings_api = get_option( 'market_exporter_api' );
 
         // Init default values if not set in config.
         if ( ! isset( $this->settings['file_date'] ) )
@@ -120,7 +121,7 @@ class ME_WC {
                 ),
                 array(
                     'key'   => '_stock_status',
-                    'value' => 'instock'
+                    //'value' => 'instock'
                 )
             ),
             'orderby'   => 'ID',
@@ -243,7 +244,7 @@ class ME_WC {
                 $yml .= ' days="'.esc_html($this->settings['days_delivery_all']).'"';
             endif;
             if( is_numeric ( $this->settings['order_before_delivery_all'] ) ){
-                $yml .= ' order_before="'.esc_html($this->settings['order_before_delivery_all']).'"/>'.PHP_EOL;
+                $yml .= ' order-before="'.esc_html($this->settings['order_before_delivery_all']).'"/>'.PHP_EOL;
             }else {
                 $yml .= ' />'.PHP_EOL;
             }
@@ -252,16 +253,18 @@ class ME_WC {
         $yml .= '    <categories>'.PHP_EOL;
         
 		foreach ( get_categories( array( 'taxonomy' => 'product_cat', 'orderby' => 'term_id' ) ) as $category ):
-			if ( $category->parent == 0 ) {
-				$yml .= '      <category id="' . $category->cat_ID . '">' . wp_strip_all_tags( $category->name ) . '</category>'.PHP_EOL;
-			}
-		endforeach;
+            if ( $category->parent == 0 ) {
+                $yml .= '      <category id="' . $category->cat_ID . '">' . wp_strip_all_tags( $category->name ) . '</category>'.PHP_EOL;
+            }
+        endforeach;
 		foreach ( get_categories( array( 'taxonomy' => 'product_cat', 'orderby' => 'term_id' ) ) as $category ):
-			if ( $category->parent == 0 ) {
-			} else {
-				$yml .= '      <category id="' . $category->cat_ID . '" parentId="' . $category->parent . '">' . wp_strip_all_tags( $category->name) . '</category>'.PHP_EOL;
-			}
-		endforeach;
+            if ( $category->parent == 0 ) {
+            } else {
+               	 $yml .= '      <category id="' . $category->cat_ID . '" parentId="' . $category->parent . '">' . wp_strip_all_tags( $category->name) . '</category>'.PHP_EOL;
+            }
+
+		
+        endforeach;
         $yml .= '    </categories>'.PHP_EOL;
 
         $yml .= '    <offers>'.PHP_EOL;
@@ -316,7 +319,9 @@ class ME_WC {
                     // This has to work but we need to think of a way to save the initial offer variable.
                     $offer = new WC_Product_Variation( $offerID );
                 endif;
-
+		
+		$display_yml = $this->get_attr_offer($offer, $this->settings['mis_yml_product_display']);
+		if($display_yml !== 'false'):
                 // NOTE: Below this point we start using $offer instead of $product.
                 $bid = $this->get_attr_offer($offer, $this->settings['mis_bid']);
                 $cbid = $this->get_attr_offer($offer, $this->settings['mis_cbid']);
@@ -332,10 +337,12 @@ class ME_WC {
                     if($fee && is_numeric($fee) ):
                         $yml .= ' fee="'.wp_strip_all_tags( $fee ).'"';
                     endif;
-                    $yml .= ' available="'.( $offer->stock != "outofstock" ? "true" : "true" ).'">'.PHP_EOL;
+			$available_status = ($offer->stock_status == "instock" && !$offer->managing_stock() ) ? "true" : "false";
+                    $yml .= ' available="'. $available_status . '">'.PHP_EOL;
 
                 // Link.
                 $yml .= '        <url>' . get_permalink( $offer->id ) . $var_link . '</url>'.PHP_EOL;
+
                 // Price.
                 if ( $offer->sale_price && ( $offer->sale_price < $offer->regular_price ) ):
                     $yml .= '        <price>' . $offer->sale_price . '</price>'.PHP_EOL;
@@ -352,7 +359,7 @@ class ME_WC {
                 // Category.
                 // Not using $offerID, because variable products inherit category from parent.
                 $categories = get_the_terms( $product->id, 'product_cat' );
-                $category = array_shift( $categories );
+                $category = array_pop( $categories );
                 $yml .= '        <categoryId>' . $category->term_id . '</categoryId>'.PHP_EOL;
 
                 // Market category.
@@ -369,40 +376,65 @@ class ME_WC {
                         $yml .= '        <picture>' . esc_url( $image ) . '</picture>'.PHP_EOL;
                 //endforeach;
 					$mis_picture_gallery = $offer->get_gallery_attachment_ids();
+					$image_count = $this->settings['image_count'];
 					foreach ($mis_picture_gallery as $picture_id):
+					   if($image_count > 1):
 						$picture_url = wp_get_attachment_url($picture_id);
 						if ( strlen( utf8_decode( $picture_url ) ) <= 512 )
 							$yml .= '        <picture>' . esc_url( $picture_url ) . '</picture>'.PHP_EOL;
+					   endif;
+					   $image_count--;
 					endforeach;
+		// Delivery.
+                $delivery = $this->get_attr_offer($offer, $this->settings['mis_delivery_product']);
+                    if ( $delivery )
+                        $yml .= '        <delivery>' . wp_strip_all_tags( $delivery ) . '</delivery>'.PHP_EOL;
                 
                 // Доставка товара
                 $cost = $this->get_attr_offer($offer, $this->settings['count_delivery_product']);
                 $days = $this->get_attr_offer($offer, $this->settings['days_delivery_product']);
                 $order_before = $this->get_attr_offer($offer, $this->settings['order_before_delivery_product']);
-                if ($cost || $days || $order_before):
+                if ($cost && $delivery !== 'false' || $days && $delivery !== 'false' || $order_before && $delivery !== 'false') {
                 $yml .= '        <delivery-options>'.PHP_EOL;
                 $yml .= '            <option';
-                    if(is_numeric ($cost)):
-                        $yml .= ' cost="'.wp_strip_all_tags( $cost ).'"';
-                    endif;
-                    if(is_numeric ($days)):
-                        $yml .= ' days="'.wp_strip_all_tags( $days ).'"';
-                    endif;
+                    if(is_numeric ($cost))
+			$yml .= ' cost="'.wp_strip_all_tags( $cost ).'"';
+                    if(is_numeric ($days))
+			$yml .= ' days="'.wp_strip_all_tags( $days ).'"';
                     if(is_numeric ($order_before)){
-                        $yml .= ' order_before="'.wp_strip_all_tags( $order_before ).'"/>'.PHP_EOL;
+                        $yml .= ' order-before="'.wp_strip_all_tags( $order_before ).'"/>'.PHP_EOL;
                     }else {
                         $yml .= ' />'.PHP_EOL;
                     }
                 $yml .= '        </delivery-options>'.PHP_EOL;
-                endif;
+                }elseif($delivery !== 'false'){
+      			  $yml .= '    <delivery-options>'.PHP_EOL;
+     			   $yml .= '        <option';
+     		       if( is_numeric ($this->settings['count_delivery_all'] ) ):
+        		        $yml .= ' cost="'.esc_html($this->settings['count_delivery_all']).'"';
+       		     endif;
+       		     if( is_numeric ($this->settings['days_delivery_all'] ) ):
+        		        $yml .= ' days="'.esc_html($this->settings['days_delivery_all']).'"';
+		     endif;
+       		     if( is_numeric ( $this->settings['order_before_delivery_all'] ) ){
+        		        $yml .= ' order-before="'.esc_html($this->settings['order_before_delivery_all']).'"/>'.PHP_EOL;
+        	    }else {
+        	        $yml .= ' />'.PHP_EOL;
+            		}
+        		$yml .= '    </delivery-options>'.PHP_EOL;
+		}
                 
                 
-                $yml .= '        <name>' . $this->clean( $offer->get_title() ) . '</name>'.PHP_EOL;
+                //$yml .= '        <name>' . str_replace( '&', '&amp;', $this->clean( $offer->get_title() ) ) . '</name>'.PHP_EOL;
 
                 // Vendor.
                 $vendor = $this->get_attr_offer($offer, $this->settings['vendor']);
-                    if ( $vendor )
-                        $yml .= '        <vendor>' . wp_strip_all_tags( $vendor ) . '</vendor>'.PHP_EOL;
+                    if ( $vendor ){
+			$yml .= '        <vendor>' . wp_strip_all_tags( $vendor ) . '</vendor>'.PHP_EOL;
+		    }
+		    else {
+                        $yml .= '        <vendor>' . str_replace( '&', '&amp;', $this->clean( $offer->get_title() ) ) . '</vendor>'.PHP_EOL;
+		    }
                 // Delivery.
                 $delivery = $this->get_attr_offer($offer, $this->settings['mis_delivery_product']);
                     if ( $delivery )
@@ -417,13 +449,23 @@ class ME_WC {
                         $yml .= '        <store>' . wp_strip_all_tags( $store ) . '</store>'.PHP_EOL;
                 // Model.
                 $model = $this->get_attr_offer($offer, $this->settings['model']);
-                    if ( $model )
+                    if ( $model ){
                         $yml .= '        <model>' . wp_strip_all_tags( $model ) . '</model>'.PHP_EOL;
-		
+		    }
+		    else{
+			$yml .= '        <model>' . str_replace( '&', '&amp;', $this->clean( $offer->get_title() ) ) . '</model>'.PHP_EOL;
+		    }
 		//Outlets
+                $shop_id = $this->get_attr_offer($offer, $this->settings['mis_shop_id']);
+		if( is_numeric($shop_id) ){
 		$yml .= '        <outlets>'.PHP_EOL;
-		$yml .= '           <outlet id="" instock="1" />'.PHP_EOL;
+		$yml .= '           <outlet id="'. $shop_id .'" instock="1" />'.PHP_EOL;
 		$yml .= '        </outlets>'.PHP_EOL;
+		}else{
+		$yml .= '        <outlets>'.PHP_EOL;
+		$yml .= '           <outlet id="1" instock="1" />'.PHP_EOL;
+		$yml .= '        </outlets>'.PHP_EOL;
+		}
 
                 // Vendor code.
                 if ( $offer->sku )
@@ -433,7 +475,7 @@ class ME_WC {
                 //$yml .= '        <description><![CDATA[' . html_entity_decode( apply_filters( 'the_content', $offer->post->post_content ), ENT_COMPAT, "UTF-8" ) . ']]></description>'.PHP_EOL;
 
                 if ( $offer->post->post_excerpt )
-                    $yml .= '        <description> <![CDATA[' . html_entity_decode( $offer->post->post_excerpt, ENT_COMPAT, "UTF-8" ) . ']]> </description>'.PHP_EOL;
+                    $yml .= '        <description> <![CDATA[' . html_entity_decode( str_replace(': ', ':', $offer->post->post_excerpt), ENT_COMPAT, "UTF-8" ) . ']]> </description>'.PHP_EOL;
 				
                 // Sales notes.
 		$sales_notes = $this->get_attr_offer($offer, $this->settings['mis_sales_notes']);
@@ -455,14 +497,24 @@ class ME_WC {
                     $param_arr = explode( " | ", $param);
                     $attributes = $offer->get_attributes();
                     $attr_value = wp_get_post_terms( $product->id , 'pa_'.$param_arr[0], array("fields" => "all"));
-                    if( $attr_value[0]->slug )
-                        $yml .= '        <param name="'.$param_arr[1].'">'. $attr_value[0]->name .'</param>'.PHP_EOL;
+                    if( $attr_value[0]->slug ):
+                        $yml .= '        <param name="'.$param_arr[1].'">';
+			foreach( $attr_value as $key=>$values ):
+				if($key < 1){
+					$yml .= $values->name;
+				}else{
+					$yml .= ' | ' . $values->name;
+				}					
+			endforeach;
+		   	$yml .= '</param>' . PHP_EOL;
+		    endif;
                 endforeach;
                 endif;
 
                 $yml .= '      </offer>'.PHP_EOL;
+	    endif;
             endwhile;
-
+	
         endwhile;
 
         return $yml;

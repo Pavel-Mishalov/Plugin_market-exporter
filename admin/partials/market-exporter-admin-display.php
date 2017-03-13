@@ -34,6 +34,10 @@
 		   class="nav-tab <?php if ( $_GET['tab'] == 'news' ) echo 'nav-tab-active'; ?>">
 			<?php _e('News', $this->plugin_name); ?>
 		</a>
+		<a href="<?= admin_url( 'admin.php?page=' . $this->plugin_name . '&amp;tab=api' ); ?>"
+		   class="nav-tab <?php if ( $_GET['tab'] == 'api' ) echo 'nav-tab-active'; ?>">
+			<?php _e('API', $this->plugin_name); ?>
+		</a>
 	</nav>
 
 	<?php // Display general tab.
@@ -195,6 +199,49 @@
 		<p>Несколько слов по поводу последнего обновления 0.2.6. В последней версии WooCommerce были внесены значительные изменения в то как работает доставка, а именно - появились зоны. Пока данный функционал полностью не реализован в плагине, рекомендуется устанавливать параметры доставки в партнерском интерфейсе Яндекс Маркет.</p>
 		<p>Также, сейчас я работаю над созданием нового сервиса для работы с Яндекс Маркет. Сервис будет работать по API с WooCommerce и интегрироваться с различными сервисами Яндекса. Мне нужны бета-тестеры. Кому интересно, пишите мне на <a href="mailto:a.vanyukov@testor.ru">a.vanyukov@testor.ru</a>.</p>
 
-		<!-- end news tab -->
+	<?php elseif ( $_GET['tab'] == 'api' ) : ?>
+
+	<?php
+
+		if (!current_user_can('manage_options')) {
+		return;
+		}
+
+		if ( isset( $_GET[ 'settings-updated' ] ) ) {
+
+		add_settings_error(
+				'market_exporter_messages',
+				'market_exporter_message',
+				__( 'Settings Saved', $this->plugin_name ),
+				'updated'
+			);
+		}
+		settings_errors( 'market_exporter_messages' );
+		?>
+
+		<form action="options.php" method="post">
+			<?php
+
+				settings_fields( 'yandex_api' );
+				do_settings_sections( 'yandex_api' );
+			?>
+            <table class="form-table">
+                <tr>
+                    <th scope="row">
+                        <label>URL-запросов</label>
+                    </th>
+                    <td>
+                        <p style="margin: 0px">
+                            <?php echo plugins_url( $this->plugin_name . '/api'); ?>
+                        </p>
+                    </td>
+                </tr>
+            </table>
+			<?php
+				submit_button();
+
+			?>
+		</form>
+
 	<?php endif; ?>
 </div>
